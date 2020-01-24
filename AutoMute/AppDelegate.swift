@@ -13,37 +13,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, WifiManagerDelegate {
     private let storyboard = NSStoryboard(name: Storyboards.setupWindow, bundle: nil)
     private var windowController: NSWindowController?
     private let wifiManager = WifiManager()
-    private let statusItem = NSStatusBar.systemStatusBar().statusItemWithLength(NSVariableStatusItemLength)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
-    private let currentNetworkItem = NSMenuItem(title: "", action: "", keyEquivalent: "")
-    private let infoItem = NSMenuItem(title: "", action: "", keyEquivalent: "")
+    private let currentNetworkItem = NSMenuItem(title: "", action: Selector(""), keyEquivalent: "")
+    private let infoItem = NSMenuItem(title: "", action: Selector(""), keyEquivalent: "")
     private var lastActionDate: NSDate? = nil
     
     func applicationDidFinishLaunching(aNotification: NSNotification) {
         wifiManager.delegate = self
         wifiManager.startWifiScanning()
-        LaunchAtLoginController().setLaunchAtLogin(true, forURL: NSURL(fileURLWithPath: NSBundle.mainBundle().bundlePath))
+        LaunchAtLoginController().setLaunchAtLogin(true, for: NSURL(fileURLWithPath: Bundle.main.bundlePath) as URL)
         configureStatusBarMenu()
         showSetupIfFirstLaunch()
     }
     
     private func configureStatusBarMenu() {
         statusItem.button?.image = NSImage(named: "StatusBarIcon")
-        statusItem.button?.sendActionOn(Int(NSEventMask.LeftMouseDownMask.rawValue))
+        statusItem.button?.sendAction(on: NSEvent.EventTypeMask(rawValue: NSEvent.EventTypeMask.RawValue(Int(Float(NSEvent.EventTypeMask.leftMouseDown.rawValue)))))
         statusItem.button?.action = Selector("pressedStatusIcon")
         menu.addItem(currentNetworkItem)
         menu.addItem(infoItem)
-        menu.addItem(NSMenuItem.separatorItem())
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Preferences...", action: Selector("showSetupWindow"), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separatorItem())
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit AutoMute", action: Selector("terminate:"), keyEquivalent: ""))
     }
     
     private func showSetupIfFirstLaunch() {
-        if !NSUserDefaults.standardUserDefaults().boolForKey(DefaultsKeys.launchedBefore) {
+        if !UserDefaults.standard.bool(forKey: DefaultsKeys.launchedBefore) {
             showSetupWindow()
-            NSUserDefaults.standardUserDefaults().setBool(true, forKey: DefaultsKeys.launchedBefore)
-            NSUserDefaults.standardUserDefaults().synchronize()
+            UserDefaults.standard.set(true, forKey: DefaultsKeys.launchedBefore)
+            UserDefaults.standard.synchronize()
         }
     }
     
@@ -52,17 +52,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, WifiManagerDelegate {
     func pressedStatusIcon() {
         updateCurrentNetworkItem()
         updateInfoItem()
-        statusItem.popUpStatusItemMenu(menu)
+        statusItem.popUpMenu(menu)
     }
     
     func showSetupWindow() {
-        if let visible = windowController?.window?.visible where visible {
-            NSApp.activateIgnoringOtherApps(true)
+        if let visible = windowController?.window?.isVisible, visible {
+            NSApp.activate(ignoringOtherApps: true)
         } else {
             windowController = storyboard.instantiateInitialController() as? NSWindowController
             windowController?.showWindow(self)
-            windowController?.window?.level = Int(CGWindowLevelForKey(CGWindowLevelKey.PopUpMenuWindowLevelKey))
-            NSApp.activateIgnoringOtherApps(true)
+            windowController?.window?.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(CGWindowLevelKey.popUpMenuWindow)))
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
     
@@ -98,25 +98,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, WifiManagerDelegate {
 }
 
 extension NSDate {
-    private static var dateFormatter: NSDateFormatter = {
-        let formatter = NSDateFormatter()
-        formatter.timeZone = NSTimeZone.defaultTimeZone()
+    private static var dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeZone = NSTimeZone.default
         formatter.doesRelativeDateFormatting = true
-        formatter.dateStyle = .MediumStyle
+        formatter.dateStyle = .medium
         return formatter
     }()
     
-    private static var timeFormatter: NSDateFormatter = {
-        let formatter = NSDateFormatter()
-        formatter.timeStyle = .ShortStyle
+    private static var timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
         return formatter
     }()
     
     var naturalDate: String {
-        let dateString = NSDate.dateFormatter.stringFromDate(self)
+        let dateString = NSDate.dateFormatter.string(from: self as Date)
         if dateString == "Today" {
-            return "at \(NSDate.timeFormatter.stringFromDate(self))"
+            return "at \(NSDate.timeFormatter.string(from: self as Date))"
         }
-        return "\(dateString) at \(NSDate.timeFormatter.stringFromDate(self))"
+        return "\(dateString) at \(NSDate.timeFormatter.string(from: self as Date))"
     }
 }

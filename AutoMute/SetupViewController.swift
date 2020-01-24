@@ -18,11 +18,11 @@ class SetupViewController: NSViewController, NSTableViewDataSource, NSTableViewD
     }
     
     func tableView(tableView: NSTableView, objectValueForTableColumn tableColumn: NSTableColumn?, row: Int) -> AnyObject? {
-        if tableColumn?.identifier == ColumnIds.network {
+        if tableColumn?.identifier.rawValue == ColumnIds.network {
             return WifiManager.networks[row][NetworkKeys.ssid]
-        } else if tableColumn?.identifier == ColumnIds.action {
-            if let action = WifiManager.networks[row][NetworkKeys.action] as? Int where action == -1 {
-                WifiManager.networks[row][NetworkKeys.action] = Action.DoNothing.rawValue
+        } else if tableColumn?.identifier.rawValue == ColumnIds.action {
+            if let action = WifiManager.networks[row][NetworkKeys.action] as? Int, action == -1 {
+                WifiManager.networks[row][NetworkKeys.action] = Action.DoNothing.rawValue as AnyObject
             }
             return WifiManager.networks[row][NetworkKeys.action]
         }
@@ -30,8 +30,8 @@ class SetupViewController: NSViewController, NSTableViewDataSource, NSTableViewD
     }
     
     func tableView(tableView: NSTableView, setObjectValue object: AnyObject?, forTableColumn tableColumn: NSTableColumn?, row: Int) {
-        if let selectedSegment = object as? Int where tableColumn?.identifier == ColumnIds.action {
-            WifiManager.updateActionForNetwork(selectedSegment, index: row)
+        if let selectedSegment = object as? Int, tableColumn?.identifier.rawValue == ColumnIds.action {
+            WifiManager.updateActionForNetwork(action: selectedSegment, index: row)
         }
     }
     

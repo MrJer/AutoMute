@@ -14,14 +14,14 @@ protocol WifiManagerDelegate: class {
 }
 
 class WifiManager: NSObject {
-    private let wifiInterface = CWWiFiClient.sharedWiFiClient().interface()
+    private let wifiInterface = CWWiFiClient.shared().interface()
     private var lastSSID: String?
     weak var delegate: WifiManagerDelegate?
     static var networks = WifiManager.getUsedNetworks()
     private var dropCounter: Int?
     
     override init() {
-        lastSSID = NSUserDefaults.standardUserDefaults().valueForKey(DefaultsKeys.lastSSID) as? String
+        lastSSID = UserDefaults.standard.value(forKey: DefaultsKeys.lastSSID) as? String
     }
     
     // Retrieves network info from the user's preferences, returns only the networks that have been connected to and sorted by date last used
@@ -33,15 +33,15 @@ class WifiManager: NSObject {
         for (_, object) in knownNetworks {
             if var network = object as? [String: AnyObject], let ssid = network[NetworkKeys.ssid] as? String {
                 if network[NetworkKeys.lastConnected] != nil {
-                    let action = NSUserDefaults.standardUserDefaults().objectForKey(ssid) as? Int ?? Action.DoNothing.rawValue
-                    network[NetworkKeys.action] = action
+                    let action = UserDefaults.standard.object(forKey: ssid) as? Int ?? Action.DoNothing.rawValue
+                    network[NetworkKeys.action] = action as AnyObject
                     usedNetworks += [network]
                 }
             }
         }
-        usedNetworks.sortInPlace { (first, second) -> Bool in
-            if let firstDate = first[NetworkKeys.lastConnected] as? NSDate, secondDate = second[NetworkKeys.lastConnected] as? NSDate {
-                return firstDate.compare(secondDate) == NSComparisonResult.OrderedDescending
+        usedNetworks.sort { (first, second) -> Bool in
+            if let firstDate = first[NetworkKeys.lastConnected] as? NSDate, let secondDate = second[NetworkKeys.lastConnected] as? NSDate {
+                return firstDate.compare(secondDate as Date) == ComparisonResult.orderedDescending
             }
             return true
         }
@@ -50,16 +50,16 @@ class WifiManager: NSObject {
     
     private class func notConnectedWifiDictionary() -> [String: AnyObject] {
         let ssid = NetworkNames.notConnectedDisplayName
-        return [NetworkKeys.ssid: ssid,
-            NetworkKeys.lastConnected: NSDate.distantFuture(),
-            NetworkKeys.action: NSUserDefaults.standardUserDefaults().objectForKey(ssid) as? Int ?? Action.DoNothing.rawValue]
+        return [NetworkKeys.ssid: ssid as AnyObject,
+                NetworkKeys.lastConnected: NSDate.distantFuture as AnyObject,
+            NetworkKeys.action: (UserDefaults.standard.object(forKey: ssid) as? Int ?? Action.DoNothing.rawValue) as AnyObject]
     }
     
     class func updateActionForNetwork(action: Int, index: Int) {
-        WifiManager.networks[index][NetworkKeys.action] = action
+        WifiManager.networks[index][NetworkKeys.action] = action as AnyObject
         if let ssid = WifiManager.networks[index][NetworkKeys.ssid] as? String {
-            NSUserDefaults.standardUserDefaults().setValue(action, forKey: ssid)
-            NSUserDefaults.standardUserDefaults().synchronize()
+            UserDefaults.standard.setValue(action, forKey: ssid)
+            UserDefaults.standard.synchronize()
         }
     }
     
@@ -72,7 +72,7 @@ class WifiManager: NSObject {
         if network == NetworkNames.notConnected {
             network = NetworkNames.notConnectedDisplayName
         }
-        if let action = NSUserDefaults.standardUserDefaults().objectForKey(network) as? Int {
+        if let action = UserDefaults.standard.object(forKey: network) as? Int {
             return Action(rawValue: action) ?? Action.DoNothing
         }
         return Action.DoNothing
@@ -82,17 +82,17 @@ class WifiManager: NSObject {
     
     func startWifiScanning() {
         checkSSID()
-        let ssidTimer = NSTimer(timeInterval: Constants.wifiCheckTimeInterval, target: self, selector: Selector("checkSSID"), userInfo: nil, repeats: true)
-        NSRunLoop.mainRunLoop().addTimer(ssidTimer, forMode: NSRunLoopCommonModes)
+        let ssidTimer = Timer(timeInterval: Constants.wifiCheckTimeInterval, target: self, selector: Selector(("checkSSID")), userInfo: nil, repeats: true)
+        RunLoop.main.add(ssidTimer, forMode: RunLoop.Mode.common)
     }
     
     func checkSSID() {
         let ssid = wifiInterface?.ssid()
         func updateSSID() {
             lastSSID = ssid
-            delegate?.performAction(currentAction())
-            NSUserDefaults.standardUserDefaults().setValue(lastSSID, forKey: DefaultsKeys.lastSSID)
-            NSUserDefaults.standardUserDefaults().synchronize()
+            delegate?.performAction(action: currentAction())
+            UserDefaults.standard.setValue(lastSSID, forKey: DefaultsKeys.lastSSID)
+            UserDefaults.standard.synchronize()
             dropCounter = nil
         }
         
@@ -100,7 +100,7 @@ class WifiManager: NSObject {
             if ssid != nil {
                 updateSSID()
             } else {
-                if let wifiIsOn = wifiInterface?.powerOn() where !wifiIsOn {
+                if let wifiIsOn = wifiInterface?.powerOn(), !wifiIsOn {
                     // Wifi got turned off, proceed normally
                     updateSSID()
                 } else {

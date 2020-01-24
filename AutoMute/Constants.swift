@@ -9,7 +9,7 @@
 import Foundation
 
 struct Constants {
-    static let wifiCheckTimeInterval: NSTimeInterval = 2
+    static let wifiCheckTimeInterval: TimeInterval = 2
     static let dropCounter = 3
 }
 
